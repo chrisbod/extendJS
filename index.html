@@ -8,9 +8,8 @@
   <style type="text/css">
     body {
       margin-top: 1.0em;
-      background-color: #c83207;
       font-family: Helvetica, Arial, FreeSans, san-serif;
-      color: #ffffff;
+      color: #111111;
     }
     #container {
       margin: 0 auto;
@@ -31,14 +30,14 @@
 </head>
 
 <body>
-  <a href="http://github.com/chrisbod/xtendJS"><img style="position: absolute; top: 0; right: 0; border: 0;" src="http://s3.amazonaws.com/github/ribbons/forkme_right_darkblue_121621.png" alt="Fork me on GitHub" /></a>
+  <a href="http://github.com/chrisbod/extendJS"><img style="position: absolute; top: 0; right: 0; border: 0;" src="http://s3.amazonaws.com/github/ribbons/forkme_right_darkblue_121621.png" alt="Fork me on GitHub" /></a>
 
   <div id="container">
 
     <div class="download">
-      <a href="http://github.com/chrisbod/xtendJS/zipball/master">
+      <a href="http://github.com/chrisbod/extendJS/zipball/master">
         <img border="0" width="90" src="http://github.com/images/modules/download/zip.png"></a>
-      <a href="http://github.com/chrisbod/xtendJS/tarball/master">
+      <a href="http://github.com/chrisbod/extendJS/tarball/master">
         <img border="0" width="90" src="http://github.com/images/modules/download/tar.png"></a>
     </div>
 
@@ -53,11 +52,13 @@
 
 Javascript is seriously memory friendly when used the right way (use prototypical inheritance and as few closures as possible) - but requirejs uses one big closure and the bulk of objects being developed by people use closures liberally for private variable creation (often when unnecessary). So I wanted a way to extend my required objects  (or any objects) which was:
 
-a) memory friendly (reduce amount of closures)
-b) prototypical inheritance friendly (allows types with almost no closures whatsoever)
-c) capable of extending objects using many different filters so I could get just what I wanted whenever I wanted and probably a lot more besides
-d) doesn't need to pollute the global scope
-e) required friendly
+<ul>
+<li>memory friendly (reduce amount of closures)</li>
+<li>prototypical inheritance friendly (allows types with almost no closures whatsoever)</li>
+<li>capable of extending objects using many different filters so I could get just what I wanted whenever I wanted and probably a lot more besides</li>
+<li>doesn't need to pollute the global scope</li>
+<li>required friendly</li>
+</ul>
 
 </p><h2>Dependencies</h2>
 <p>None (well if you use the requied version you'll need requirejs)!</p>
@@ -66,14 +67,15 @@ e) required friendly
 <h2>License</h2>
 <p>Convince me it needs one, information should be free</p>
 <h2>Contact</h2>
-<p>Christian Bodart (chris@bodar.com)<br/>      </p>
+<p>Christian Bodart (chris@bodar.com)
+<br/>      </p>
 
 
     <h2>Download</h2>
     <p>
       You can download this project in either
-      <a href="http://github.com/chrisbod/xtendJS/zipball/master">zip</a> or
-      <a href="http://github.com/chrisbod/xtendJS/tarball/master">tar</a> formats.
+      <a href="http://github.com/chrisbod/extendJS/zipball/master">zip</a> or
+      <a href="http://github.com/chrisbod/extendJS/tarball/master">tar</a> formats.
     </p>
     <p>You can also clone the project with <a href="http://git-scm.com">Git</a>
       by running:
@@ -81,7 +83,7 @@ e) required friendly
     </p>
 
     <div class="footer">
-      get the source code on GitHub : <a href="http://github.com/chrisbod/xtendJS">chrisbod/xtendJS</a>
+      get the source code on GitHub : <a href="http://github.com/chrisbod/extendJS">chrisbod/extendJS</a>
     </div>
 
   </div>
