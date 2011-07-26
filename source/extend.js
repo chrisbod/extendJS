@@ -1,23 +1,40 @@
 if (typeof this.extend !== "undefined") {
-	//a property called extend has already been declared in global scope!
-	//store it and we will reassign later
+	/*	a property called extend has already been declared in global scope!
+		store it and we will reassign later */
 	this.extend_placeholder = this.extend;
 }
 
 //core function
 this.extend = function extend(targetObject, sourceObject, filter) {
-	//default is false when not passed
-	//convert the filter into a PropertyFilter if it is not already
-	if (!filter || typeof filter.filterProperty !== "function") {
-		filter = new arguments.callee.PropertyFilter(filter);
-	} 
+	var propertyName,
+		filterProperty;
+	if (filter === undefined) {
+		//default filter type is used if argument not passed
+		filter = true;
+	} else {//check to see if filter argument has been passed if not set to true
+		if (filter === null) {
+			//null set so direct copy without filter immediately
+			for (propertyName in sourceObject) {
+				targetObject[propertyName] = sourceObject[propertyName];
+			}
+			//our work is done here
+			return;
+		}
+	}
+	//check if we've been passed a PropertyFilter compliant object and if not create a new one
+	//
+	if (typeof filter.filterProperty !== "function") {
+		filterProperty = new arguments.callee.PropertyFilter(filter);
+	}
+	//enumerate, filter and assign
 	for (var propertyName in sourceObject) {
-		if (filter.filterProperty(propertyName, targetObject, sourceObject)) {
+		if (filterProperty.filterProperty(propertyName, targetObject, sourceObject)) {
 			targetObject[propertyName] = sourceObject[propertyName];
 		}
 	}
 };
 this.extend(
+	//self test 1 - passing null
 	this.extend, {
 		//housekeeping method to remove any references the named functions leave in global scope;
 		cleanReferences: function xtend_cleanReferences(scope) {
@@ -40,26 +57,29 @@ this.extend(
 			//decide the strategy for filtering
 			this.filterProperty = this.resolvePropertyFilterMethod();
 		}
-};
+	},
+	//direct copy
+	null
+);
 this.extend(
 	//extend the prototype of PropertyFilter type
 	this.extend.PropertyFilter.prototype, {
+	
 	//Core implementation for PropertyInterface Implementation//	
+		
 		//the only method 'required' to fulfill a FilterProperty 'implementation'
 		filterProperty: function extend_PropertyFilter_filterProperty() {
 			//defaut behaviour (occurs when no filter has been explicitly set in the object or the filter is set to false)
-			return this.filterPropertyAllowingNewNullOrUndefined.apply(this,arguments)
+			return this.filterPropertyInstanceOnlyAllowingNewNullOrUndefined.apply(this,arguments)
 		},
 		
-		//Properties
 		//default behaviour is to only copy new properties or those in the target set to null or undefined
-		filter: false,
-		
-		
+		filter: true,
+				
 		//this is the core 'logic' of the type - basically it decides which filterProperty method the instance should use
 		resolvePropertyFilterMethod: function extend_PropertyFilter_resolvePropertyFilterMethods() {
 			switch (this.filter.constructor) {
-				case Boolean	: return this.filter ? this.filterPropertyAllowingAll : this.filterExistingPropertyAllowingNewNullOrUndefined;
+				case Boolean	: return this.filter ? this.filterPropertyInstanceOnlyAllowingNewNullOrUndefined : this.filterPropertyAllPropertiesAllowingNewNullOrUndefined ;
 				case Number		: //do the same as number
 				case String		: return this.filterPropertyUsingString;
 				case Function	: return this.filterPropertyUsingFunction;
@@ -69,16 +89,19 @@ this.extend(
 			}
 		},
 
-		filterPropertyAllowingNewNullOrUndefined: function extend_PropertyFilter_filterPropertyAllowingNewNullOrUndefined(propertyName, targetObject) {
-			//we disallow overwriting any existing properties unless they are null or undefined
-			return !targetObject.hasOwnProperty(propertyName) || targetObject[propertyName] === null || targetObject[propertyName] === undefined;
+		filterPropertyInstanceOnlyAllowingNewNullOrUndefined: function extend_PropertyFilter_filterPropertyInstanceOnlyAllowingNewNullOrUndefined(propertyName, targetObject, sourceObject) {
+			//accept only instance properties but disallow overwriting any existing properties unless they are null or undefined
+			return sourceObject.hasOwnProperty(propertyName) && (!targetObject.hasOwnProperty(propertyName) || targetObject[propertyName] === null || targetObject[propertyName] === undefined);
 		},
 
-		filterPropertyAllowingAll: function extend_PropertyFilter_filterPropertyAllowingAll() {
-			return true;
+		filterPropertyAllowingAll: function extend_PropertyFilter_filterPropertyAllPropertiesAllowingNewNullOrUndefined() {
+			//accept all properties (including inherited ones) but disallow overwriting any existing properties unless they are null or undefined
+			return !targetObject.hasOwnProperty(propertyName) || targetObject[propertyName] === null || targetObject[propertyName] === undefined;
+	
 		},
 		
 		filterPropertyUsingString: function extend_PropertyFilter_filterPropertyUsingString(propertyName) {
+			//simple identity check
 			return propertyName === this.filter;
 		},
 		
@@ -91,22 +114,32 @@ this.extend(
 			//passes all three arguments straight through to the filterMethod
 			return this.filter.apply(null, arguments);
 		},
+		
 		filterPropertyUsingRegExp: function extend_PropertyFilter_filterPropertyUsingRegExp(propertyName) {
 			return this.filter.test(propertyName);
 		},
-		filterPropertyUsingArray: function extend_PropertyFilter_filterPropertyUsingRegExp(propertyName)
+		
+		filterPropertyUsingArray: function extend_PropertyFilter_filterPropertyUsingRegExp(propertyName) {
 			return RegExp("^(" + this.filter.join("|") + ")$").test(propertyName);
 		},
+		
 		filterPropertyUsingObject: function extend_PropertyFilter_filterPropertyUsingObject(propertyName) {
 			return typeof this.filter[propertyName] !== "undefined";
 		}
-	}
+	},
+	null
 );
-if (this.require && this.define) {//
-	
 
-
+if (this.require) {
+	//register with requirejs if it's present
+	if (this.define) {
+		this.define(this.extend);
+	}
+	else if (this.require.def) {
+		this.require.def(this.extend);
+	}
 }
+
 //clean up any polluting global objects we've made
 this.extend.cleanReferences(this);
 
