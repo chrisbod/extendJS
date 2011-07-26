@@ -114,7 +114,7 @@ this.extend(
 		},
 		
 		filterPropertyUsingObject: function extend_PropertyFilter_filterPropertyUsingObject(propertyName) {
-			return typeof this.filter[propertyName] !== "undefined";
+			return this.filter[propertyName] !== undefined;
 		}
 	},
 	null
