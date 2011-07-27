@@ -1,5 +1,9 @@
+//create a pointer to the global scope (this.self already in IE)
+if (!this.self) {
+	this.self = this;
+}
 //core function
-this.extend = function extend(targetObject, sourceObject, filter) {
+this.self.extend = function extend(targetObject, sourceObject, filter) {
 	var propertyName,
 		filterProperty;
 	if (filter === undefined) {
@@ -36,9 +40,9 @@ this.extend = function extend(targetObject, sourceObject, filter) {
 		}
 	}
 };
-this.extend(
+this.self.extend(
 	//self test 1 - passing null
-	this.extend, 
+	this.self.extend, 
 	{
 		//extends core PropertyFilter object
 		PropertyFilter: function extend_PropertyFilter(filter) {
@@ -50,7 +54,7 @@ this.extend(
 	//direct copy
 	null
 );
-this.extend(
+this.self.extend(
 	//extend the prototype of PropertyFilter type
 	this.extend.PropertyFilter.prototype, 
 	{
@@ -69,7 +73,7 @@ this.extend(
 		//this is the core 'logic' of the type - basically it decides which filterProperty method the instance should use
 		resolvePropertyFilterMethod: function extend_PropertyFilter_resolvePropertyFilterMethods() {
 			switch (this.filter.constructor) {
-				case Boolean	: return this.filter ? this.filterPropertyInstanceOnlyAllowingNewNullOrUndefined : this.filterPropertyAllPropertiesAllowingNewNullOrUndefined ;
+				case Boolean	: return this.filter ? this.filterPropertyInstanceOnlyAllowingNewNullOrUndefined : this.filterPropertyInstanceAndInheritedAllowingNewNullOrUndefined ;
 				case Number		: return this.filterPropertyUsingNumber;
 				case String		: return this.filterPropertyUsingString;
 				case Function	: return this.filterPropertyUsingFunction;
@@ -81,12 +85,12 @@ this.extend(
 
 		filterPropertyInstanceOnlyAllowingNewNullOrUndefined: function extend_PropertyFilter_filterPropertyInstanceOnlyAllowingNewNullOrUndefined(propertyName, targetObject, sourceObject) {
 			//accept only instance properties but disallow overwriting any existing properties unless they are null or undefined
-			return sourceObject.hasOwnProperty(propertyName) && (!targetObject.hasOwnProperty(propertyName) || targetObject[propertyName] === null || targetObject[propertyName] === undefined);
+			return Object.prototype.hasOwnProperty.call(sourceObject,propertyName) && (!Object.prototype.hasOwnProperty.call(targetProperty,propertyName) || targetObject[propertyName] === null || targetObject[propertyName] === undefined);
 		},
 
-		filterPropertyAllowingAll: function extend_PropertyFilter_filterPropertyAllPropertiesAllowingNewNullOrUndefined(propertyName, targetObject, sourceObject) {
+		filterPropertyInstanceAndInheritedAllowingNewNullOrUndefined: function extend_PropertyFilter_filterPropertyInstanceAndInheritedAllowingNewNullOrUndefined(propertyName, targetObject, sourceObject) {
 			//accept all properties (including inherited ones) but disallow overwriting any existing properties unless they are null or undefined
-			return !targetObject.hasOwnProperty(propertyName) || targetObject[propertyName] === null || targetObject[propertyName] === undefined;
+			return !Object.prototype.hasOwnProperty.call(targetObject,propertyName) || targetObject[propertyName] === null || targetObject[propertyName] === undefined;
 	
 		},
 		
@@ -120,12 +124,15 @@ this.extend(
 	null
 );
 
-if (this.require) {
+if (this.self.require) {
 	//register with requirejs if it's present
-	if (this.define) {
-		this.define(this.extend);
-	} else if (this.require.def) {
-		this.require.def(this.extend);
+	if (this.self.define) {
+		this.self.define(this.self.extend);
+	} else if (this.self.require.def) {
+		this.self.require.def(this.self.extend);
 	}
 }
-
+//clean up
+if (this.self === this) {
+	delete this.self;
+} 
