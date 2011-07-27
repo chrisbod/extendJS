@@ -4,6 +4,11 @@ if (!this.self) {
 }
 //core function
 this.self.extend = function extend(targetObject, sourceObject, filter) {
+	if (targetObject.constructor === this.RequireRequest || sourceObject.constructor === this.RequireRequest || (filter && filter.constructor === this.RequireRequest) {
+		//We are in async land now baby
+		this.buildRequireRequest(targetObject, sourceObject, filter);
+		return;
+	}
 	var propertyName,
 		filterProperty;
 	if (filter === undefined) {
@@ -49,6 +54,17 @@ this.self.extend(
 			this.filter = filter || false;
 			//decide the strategy for filtering
 			this.filterProperty = this.resolvePropertyFilterMethod();
+		},
+		require: function (moduleName,targetObjectGetter) {
+			return new this.RequireRequest(moduleName,targetObjectGetter);
+		},
+		RequireRequest: function (moduleName,targetObjectGetter) {
+			this.moduleName = moduleName,
+			this.targetObjectGetter = targetObjectGetter; //need to handler defaults for this
+		},
+		buildRequireRequest: function (targetObject, sourceObject, filter) {
+			//find out which arguments require requiring and build a custom require request.
+			
 		}
 	},
 	//direct copy
