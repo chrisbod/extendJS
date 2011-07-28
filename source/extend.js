@@ -1,70 +1,175 @@
+/**
+* Utility method for extending any object based on another object
+* With requireJS support
+**
+	@author Christian Bodart
+ 	@version 0.1
+**/
+
+
 //create a pointer to the global scope (this.self already in IE)
 if (!this.self) {
 	this.self = this;
 }
-//core function
+/**
+* Core extend function
+**
+	@param targetObject[Object]
+ 	@param sourceObject[Object]
+	@param filter (optional)
+**/
 this.self.extend = function extend(targetObject, sourceObject, filter) {
-	if (targetObject.constructor === this.RequireRequest || sourceObject.constructor === this.RequireRequest || (filter && filter.constructor === this.RequireRequest) {
+	var RequireRequest = this.RequireRequest,
+		propertyName,
+		filterProperty;
+	if (
+		targetObject instanceof RequireRequest ||
+		sourceObject instanceof RequireRequest ||
+		filter instanceof RequireRequest
+	) {
 		//We are in async land now baby
 		this.buildRequireRequest(targetObject, sourceObject, filter);
-		return;
-	}
-	var propertyName,
-		filterProperty;
-	if (filter === undefined) {
-		//default filter type is used if argument not passed
-		filter = true;
-	} else {//check to see if filter argument has been passed if not set to true
-		if (filter === null) {
-			//null set so direct copy without filter immediately
-			for (propertyName in sourceObject) {
-				targetObject[propertyName] = sourceObject[propertyName];
-			}
-			//our work is done here
-			return;
-		}
-	}
-	//check if we've been passed a PropertyFilter compliant object and if not create a new one
-	//
-	if (typeof filter.filterProperty !== "function") {
-		filterProperty = new arguments.callee.PropertyFilter(filter);
-	}
-	//enumerate, filter and assign
-	//Arrays should only be passed the length if we have specified null or false as a filter
-	if (typeof targetObject === Array && filter === false) {
-		for (propertyName in sourceObject) {
-			if (propertyName !== "length" && filterProperty.filterProperty(propertyName, targetObject, sourceObject)) {
-				targetObject[propertyName] = sourceObject[propertyName];	
-			}
-		}
 	} else {
-		for (propertyName in sourceObject) {
-			if (filterProperty.filterProperty(propertyName, targetObject, sourceObject)) {
-				targetObject[propertyName] = sourceObject[propertyName];
+		if (filter === undefined) {
+			//default filter type is used if argument not passed
+			filter = true;
+		} else {//check to see if filter argument has been passed if not set to true
+			if (filter === null) {
+				//null set so direct copy without filter immediately
+				for (propertyName in sourceObject) {
+					targetObject[propertyName] = sourceObject[propertyName];
+				}
+				//our work is done here
+				return;
+			}
+		}
+		//check if we've been passed a PropertyFilter compliant object and if not create a new one
+		//
+		if (!(filter.filterProperty instanceof Function)) {
+			filterProperty = new arguments.callee.PropertyFilter(filter);
+		}
+		//enumerate, filter and assign
+		//Arrays should only be passed the length if we have specified null or false as a filter
+		if (
+			targetObject instanceof Array &&
+			filter === false
+		) {
+			for (propertyName in sourceObject) {
+				if (
+					propertyName !== "length" &&
+					filterProperty.filterProperty(propertyName, targetObject, sourceObject, sourceObject[propertyName], targetObject[propertyName])
+				) {
+					targetObject[propertyName] = sourceObject[propertyName];	
+				}
+			}
+		} else {
+			for (propertyName in sourceObject) {
+				if (filterProperty.filterProperty(propertyName, targetObject, sourceObject, sourceObject[propertyName], targetObject[propertyName])) {
+					targetObject[propertyName] = sourceObject[propertyName];
+				}
 			}
 		}
 	}
 };
+//extending the extend function itself
 this.self.extend(
-	//self test 1 - passing null
 	this.self.extend, 
 	{
-		//extends core PropertyFilter object
+		/**
+		* Utility type used to create property filters (rules for whether to copy a particular property)
+		* PropertyFilters can actually manipulate the target object (i.e if the incoming property 
+		* is an object instance it might set that property as a new instance of the same type.
+		* ProperyFilters have a number of default behaviours (depending on the filter object passed to the constructor)
+		* in order to simplify usage.
+		* extend() itself also provides a number of static/constant filters to allow fluent calls to extend
+		**
+			@constructor
+			@param filter An argument of any type to define the behaviour of the filter
+		**/
 		PropertyFilter: function extend_PropertyFilter(filter) {
 			this.filter = filter || false;
 			//decide the strategy for filtering
 			this.filterProperty = this.resolvePropertyFilterMethod();
 		},
-		require: function (moduleName,targetObjectGetter) {
+		/**
+		* Pointer to the global scope
+		**
+			@property
+		**/
+		global: this.self,
+		/**
+		* Factory method for creating a required object reference
+		* i.e. the object desired as a source, target, or even filter is being asynchronously loaded using requireJS
+		**
+			@param moduleName[String] The name/filename of the required module
+			@param targetObjectGetter[String] If passed a string then the property with name targetObject value in the return value of the required module will be used
+			@param targetObjectGetter[Function] If passed a function the function will be passed a reference to the required module return value and the result of that function will be used
+			
+		**/
+		
+		require: function (moduleName, targetObjectGetter) {
 			return new this.RequireRequest(moduleName,targetObjectGetter);
 		},
-		RequireRequest: function (moduleName,targetObjectGetter) {
-			this.moduleName = moduleName,
+		RequireRequest: function (moduleName, targetObjectGetter) {
+			this.moduleName = moduleName;
 			this.targetObjectGetter = targetObjectGetter; //need to handler defaults for this
 		},
 		buildRequireRequest: function (targetObject, sourceObject, filter) {
 			//find out which arguments require requiring and build a custom require request.
 			
+			var RequireRequest = this.RequireRequest,
+				require = this.global.require,
+				checkComplete = function extend_buildRequest_checkComplete_closure() {
+					if (
+						!(targetObject instanceof RequireRequest) &&
+						!(sourceObject instanceof RequireRequest) &&
+						!(filter instanceof RequireRequest)
+					) {
+						//all our arguments are in!
+						extend(targetObject, sourceObject, filter);
+					}
+				};
+			//I should probably be using promises but heck this wouldn't be a javascript file without some nasty closures!
+			if (targetObject instanceof RequireRequest) {
+				require(
+					targetObject.moduleName,
+					function extend_buildRequest_targetObject_closure(targetResponse) {
+						targetObject = targetResponse;
+						checkComplete();
+					}
+				);
+			}
+			if (sourceObject instanceof RequireRequest) {
+				require(
+					sourceObject.moduleName, 
+					function extend_buildRequest_sourceObject_closure(sourceResponse) {
+						sourceObject = sourceResponse;
+						checkComplete();
+					}
+				);
+			}
+			if (filter instanceof RequireRequest) {
+				require(
+					filter.moduleName,
+					function extend_buildRequest_filter_closure(filterResponse) {
+						filter = filterResponse;
+						checkComplete();
+					}
+				);
+			}
+		},
+		//static utility filter arguments
+		INSTANCE_ONLY: true,
+		INCLUDE_INHERITED: false,
+		ALL: null,
+		METHODS_ONLY: function extend_METHODS_ONLY(propertyName, targetObject, sourceObject, sourceValue) {
+			return sourceValue instanceof Function;
+		},
+		EXCLUDE_ALL_OBJECTS: function extend_EXCLUDE_OBJECTS(propertyName, targetObject, sourceObject, sourceValue) {
+			return !(
+				typeof sourceValue === "object" ||
+				typeof sourceValue === "unknown")
+				);
 		}
 	},
 	//direct copy
@@ -101,13 +206,23 @@ this.self.extend(
 
 		filterPropertyInstanceOnlyAllowingNewNullOrUndefined: function extend_PropertyFilter_filterPropertyInstanceOnlyAllowingNewNullOrUndefined(propertyName, targetObject, sourceObject) {
 			//accept only instance properties but disallow overwriting any existing properties unless they are null or undefined
-			return Object.prototype.hasOwnProperty.call(sourceObject,propertyName) && (!Object.prototype.hasOwnProperty.call(targetProperty,propertyName) || targetObject[propertyName] === null || targetObject[propertyName] === undefined);
+			var hasOwnProperty = Object.prototype.hasOwnProperty,
+				propertyValue = targetObject[propertyName];
+			return (
+				hasOwnProperty.call(sourceObject,propertyName) &&
+				!hasOwnProperty.call(targetProperty,propertyName) ||
+				propertyValue === null ||
+				propertyValue === undefined
+			);
 		},
 
-		filterPropertyInstanceAndInheritedAllowingNewNullOrUndefined: function extend_PropertyFilter_filterPropertyInstanceAndInheritedAllowingNewNullOrUndefined(propertyName, targetObject, sourceObject) {
+		filterPropertyInstanceAndInheritedAllowingNewNullOrUndefined: function extend_PropertyFilter_filterPropertyInstanceAndInheritedAllowingNewNullOrUndefined(propertyName, targetObject, sourceObject, sourceValue, targetValue) {
 			//accept all properties (including inherited ones) but disallow overwriting any existing properties unless they are null or undefined
-			return !Object.prototype.hasOwnProperty.call(targetObject,propertyName) || targetObject[propertyName] === null || targetObject[propertyName] === undefined;
-	
+			return (
+				!Object.prototype.hasOwnProperty.call(targetObject, propertyName) ||
+				targetValue === null ||
+				targetValue === undefined;
+			);
 		},
 		
 		filterPropertyUsingString: function extend_PropertyFilter_filterPropertyUsingString(propertyName) {
@@ -139,15 +254,6 @@ this.self.extend(
 	},
 	null
 );
-
-if (this.self.require) {
-	//register with requirejs if it's present
-	if (this.self.define) {
-		this.self.define(this.self.extend);
-	} else if (this.self.require.def) {
-		this.self.require.def(this.self.extend);
-	}
-}
 //clean up
 if (this.self === this) {
 	delete this.self;
