@@ -23,7 +23,7 @@
 		@param sourceObject[Object]
 		@param filter (optional)
 	**/
-	global.extend = function extend(targetObject, sourceObject, filter) {
+	function extend(targetObject, sourceObject, filter) {
 		var RequireRequest = extend.RequireRequest,
 			filterProperty;
 		if (requireRequestPassed(targetObject, sourceObject, filter)){//We are in async land now baby (this 'factory' method is 'public')
@@ -36,7 +36,7 @@
 				return extendAllProperties(targetObject, sourceObject);
 			}
 		}
-		if ( needToFilterLengthFromArray(targetObject, filter)) {//Arrays should only be passed the length if we have specified null or false as a filter
+		if (needToFilterLengthFromArray(targetObject, filter)) {//Arrays should only be passed the length if we have specified null or false as a filter
 			return extendArrayWithoutCopyingLength(targetObject, sourceObject);
 		}
 		if (objectTypeIsFilterProperty(filter)) {//check if we've been passed a PropertyFilter compliant object and if not create a new one based on the filter property
@@ -45,6 +45,7 @@
 			return extendUsingFilterProperty(targetObject, sourceObject, filterProperty);//enumerate, filter and assign
 		}
 	};
+	extend.global = this.
 	//'Fluent'ly! named and extracted logic functions (you know, to make the code fluent and self documenting :-))
 	function requireRequestPassed(targetObject, sourceObject, filter) {
 		return targetObject instanceof RequireRequest || sourceObject instanceof RequireRequest || filter instanceof RequireRequest
@@ -92,6 +93,7 @@
 			}
 		}
 	}
+	return extend;
 })();
 
 
@@ -112,8 +114,7 @@ this.self.extend(
 		**/
 		PropertyFilter: function extend_PropertyFilter(filter) {
 			this.filter = filter || false;
-			//decide the strategy for filtering
-			this.filterProperty = this.resolvePropertyFilterMethod();
+			this.filterProperty = this.resolvePropertyFilterMethod();//decide the strategy for filtering
 		},		
 		/**
 		* Factory method for creating a required object reference
@@ -132,22 +133,29 @@ this.self.extend(
 			this.moduleName = moduleName;
 			this.targetObjectGetter = targetObjectGetter; //need to handler defaults for this
 		},
-		buildRequireRequest: function (targetObject, sourceObject, filter) {
-			//find out which arguments require requiring and build a custom require request.
+		/**
+		* Determines which arguments need to be loaded asynch (using requirejs) 
+		* 
+		**
+			@param targetObject
+			@param sourceObject
+			@param filter
 			
+		**/
+		buildRequireRequest: function (targetObject, sourceObject, filter) {	//I should probably be using promises but heck this wouldn't be a javascript file without some nasty closures!		
 			var RequireRequest = this.RequireRequest,
 				require = this.global.require,
 				checkComplete = function extend_buildRequest_checkComplete_closure() {
-					if (
+					if ( 	
 						!(targetObject instanceof RequireRequest) &&
 						!(sourceObject instanceof RequireRequest) &&
-						!(filter instanceof RequireRequest)
+						!(filter instanceof RequireRequest)			//if none of our objects are RequireRequests then off we go
 					) {
-						//all our arguments are in!
+						
 						extend(targetObject, sourceObject, filter);
 					}
 				};
-			//I should probably be using promises but heck this wouldn't be a javascript file without some nasty closures!
+			
 			if (targetObject instanceof RequireRequest) {
 				require(
 					targetObject.moduleName,
