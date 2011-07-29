@@ -26,7 +26,6 @@
 	**/
 	global.extend = function extend(targetObject, sourceObject, filter) {
 		var RequireRequest = this.RequireRequest,
-			propertyName,
 			filterProperty;
 		if (
 			targetObject instanceof RequireRequest ||
@@ -44,47 +43,62 @@
 					//null set so direct copy without filter immediately
 					return extendAllProperties(targetObject, sourceObject);
 					//our work is done here
-					return;
 				}
 			}
-			//check if we've been passed a PropertyFilter compliant object and if not create a new one
-			//
-			if (!(filter.filterProperty instanceof Function)) {
-				filterProperty = new arguments.callee.PropertyFilter(filter);
-			}
-			//enumerate, filter and assign
 			//Arrays should only be passed the length if we have specified null or false as a filter
 			if (
 				targetObject instanceof Array &&
 				filter === false
 			) {
-				for (propertyName in sourceObject) {
-					if (
-						propertyName !== "length" &&
-						filterProperty.filterProperty(propertyName, targetObject, sourceObject, sourceObject[propertyName], targetObject[propertyName])
-					) {
-						targetObject[propertyName] = sourceObject[propertyName];	
-					}
-				}
-			} else {
-				for (propertyName in sourceObject) {
-					if (filterProperty.filterProperty(propertyName, targetObject, sourceObject, sourceObject[propertyName], targetObject[propertyName])) {
-						targetObject[propertyName] = sourceObject[propertyName];
-					}
-				}
+				return extendArrayWithoutCopyingLength(targetObject, sourceObject);
+			}
+			//check if we've been passed a PropertyFilter compliant object and if not create a new one based on the filter property
+			if (!(filter.filterProperty instanceof Function)) {
+				filterProperty = new arguments.callee.PropertyFilter(filter);
+			}
+			//enumerate, filter and assign
+				return extendUsingFilterProperty(targetObject, sourceObject, filterProperty);
+
 			}
 		}
 	};
 	/**
 	* Direct copy of ALL properties regardless
-	**
 	**/
 	function extendAllProperties(targetObject, sourceObject) {
 		for (propertyName in sourceObject) {
 			targetObject[propertyName] = sourceObject[propertyName];
 		}
-	}
+	};
 	
+	/** 
+	* Copy to an array without the length property so the target arrays length is unchanged
+	* function extendArrayWithoutLengthProperty(targetArray, sourceObject) {
+	**/
+	function extendArrayWithoutCopyingLength(targetArray, sourceObject) {
+		for (propertyName in sourceObject) {
+			if (
+				propertyName !== "length" &&
+				filterProperty.filterProperty(
+					propertyName,
+					targetObject,
+					sourceObject,
+					sourceObject[propertyName],
+					targetObject[propertyName]
+				)
+			) {
+				targetObject[propertyName] = sourceObject[propertyName];	
+			}
+		}		
+	};
+	
+	function extendUsingFilterProperty(targetObject, sourceObject, filterProperty) {
+		for (propertyName in sourceObject) {
+			if (filterProperty.filterProperty(propertyName, targetObject, sourceObject, sourceObject[propertyName], targetObject[propertyName])) {
+				targetObject[propertyName] = sourceObject[propertyName];
+			}
+		}
+	}
 })();
 
 
