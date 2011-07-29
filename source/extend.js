@@ -3,7 +3,7 @@
 * With requireJS support
 **
 	@author Christian Bodart
- 	@version 0.1
+	@version 0.1
 **/
 
 (function () {
@@ -11,11 +11,10 @@
 	var global = this;
 	if (
 		this.self && //in a browser
-		this !== this.self //in a microsoft broser
+		this !== this.self //in a microsoft browser
 		) {
 			//in a microsoft instance NOT the true global
-			global = this.self
-		}
+		global = this.;		}
 	}
 	/**
 	* Core extend function
@@ -25,43 +24,37 @@
 		@param filter (optional)
 	**/
 	global.extend = function extend(targetObject, sourceObject, filter) {
-		var RequireRequest = this.RequireRequest,
+		var RequireRequest = extend.RequireRequest,
 			filterProperty;
-		if (
-			targetObject instanceof RequireRequest ||
-			sourceObject instanceof RequireRequest ||
-			filter instanceof RequireRequest
-		) {
-			//We are in async land now baby
-			this.buildRequireRequest(targetObject, sourceObject, filter);
-		} else {
-			if (filter === undefined) {
-				//default filter type is used if argument not passed
-				filter = true;
-			} else {//check to see if filter argument has been passed if not set to true
-				if (filter === null) {
-					//null set so direct copy without filter immediately
-					return extendAllProperties(targetObject, sourceObject);
-					//our work is done here
-				}
-			}
-			//Arrays should only be passed the length if we have specified null or false as a filter
-			if (
-				targetObject instanceof Array &&
-				filter === false
-			) {
-				return extendArrayWithoutCopyingLength(targetObject, sourceObject);
-			}
-			//check if we've been passed a PropertyFilter compliant object and if not create a new one based on the filter property
-			if (!(filter.filterProperty instanceof Function)) {
-				filterProperty = new arguments.callee.PropertyFilter(filter);
-			}
-			//enumerate, filter and assign
-				return extendUsingFilterProperty(targetObject, sourceObject, filterProperty);
-
+		if (requireRequestPassed(targetObject, sourceObject, filter)){//We are in async land now baby (this 'factory' method is 'public')
+			return this.buildRequireRequest(targetObject, sourceObject, filter);//build a require request 'chain' and exit
+		}
+		if (filter === undefined) {//default filter property is true (i.e. use a 'guarded' copy) is used if filter argument not passed
+			filter = true;//okay I know it's slightly counterintuitive to have an argument that is not passed equivalent to passing true but it's really because I want the 'basic' behaviour to be as safe as possible
+		} else {//check to see if filter argument has been passed if not set to true
+			if (filter === null) {//null set so direct copy without filter immediately
+				return extendAllProperties(targetObject, sourceObject);
 			}
 		}
+		if ( needToFilterLengthFromArray(targetObject, filter)) {//Arrays should only be passed the length if we have specified null or false as a filter
+			return extendArrayWithoutCopyingLength(targetObject, sourceObject);
+		}
+		if (objectTypeIsFilterProperty(filter)) {//check if we've been passed a PropertyFilter compliant object and if not create a new one based on the filter property
+			filterProperty = new extend.PropertyFilter(filter);
+		}
+			return extendUsingFilterProperty(targetObject, sourceObject, filterProperty);//enumerate, filter and assign
+		}
 	};
+	//'Fluent'ly! named and extracted logic functions (you know, to make the code fluent and self documenting :-))
+	function requireRequestPassed(targetObject, sourceObject, filter) {
+		return targetObject instanceof RequireRequest || sourceObject instanceof RequireRequest || filter instanceof RequireRequest
+	}
+	function needToFilterLengthFromArray(targetObject, filter) {
+		return targetObject instanceof Array && filter === false
+	}
+	function objectTypeIsFilterProperty(object) {
+		return !(filter.filterProperty instanceof Function)
+	}
 	/**
 	* Direct copy of ALL properties regardless
 	**/
@@ -121,13 +114,7 @@ this.self.extend(
 			this.filter = filter || false;
 			//decide the strategy for filtering
 			this.filterProperty = this.resolvePropertyFilterMethod();
-		},
-		/**
-		* Pointer to the global scope
-		**
-			@property
-		**/
-		global: global,
+		},		
 		/**
 		* Factory method for creating a required object reference
 		* i.e. the object desired as a source, target, or even filter is being asynchronously loaded using requireJS
