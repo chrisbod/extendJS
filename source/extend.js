@@ -6,71 +6,88 @@
  	@version 0.1
 **/
 
-
-//create a pointer to the global scope (this.self already in IE)
-if (!this.self) {
-	this.self = this;
-}
-/**
-* Core extend function
-**
-	@param targetObject[Object]
- 	@param sourceObject[Object]
-	@param filter (optional)
-**/
-this.self.extend = function extend(targetObject, sourceObject, filter) {
-	var RequireRequest = this.RequireRequest,
-		propertyName,
-		filterProperty;
+(function () {
+	//create a pointer to the global scope (this.self already in IE)
+	var global = this;
 	if (
-		targetObject instanceof RequireRequest ||
-		sourceObject instanceof RequireRequest ||
-		filter instanceof RequireRequest
-	) {
-		//We are in async land now baby
-		this.buildRequireRequest(targetObject, sourceObject, filter);
-	} else {
-		if (filter === undefined) {
-			//default filter type is used if argument not passed
-			filter = true;
-		} else {//check to see if filter argument has been passed if not set to true
-			if (filter === null) {
-				//null set so direct copy without filter immediately
-				for (propertyName in sourceObject) {
-					targetObject[propertyName] = sourceObject[propertyName];
-				}
-				//our work is done here
-				return;
-			}
-		}
-		//check if we've been passed a PropertyFilter compliant object and if not create a new one
-		//
-		if (!(filter.filterProperty instanceof Function)) {
-			filterProperty = new arguments.callee.PropertyFilter(filter);
-		}
-		//enumerate, filter and assign
-		//Arrays should only be passed the length if we have specified null or false as a filter
-		if (
-			targetObject instanceof Array &&
-			filter === false
+		this.self && //in a browser
+		this !== this.self //in a microsoft broser
 		) {
-			for (propertyName in sourceObject) {
-				if (
-					propertyName !== "length" &&
-					filterProperty.filterProperty(propertyName, targetObject, sourceObject, sourceObject[propertyName], targetObject[propertyName])
-				) {
-					targetObject[propertyName] = sourceObject[propertyName];	
-				}
-			}
-		} else {
-			for (propertyName in sourceObject) {
-				if (filterProperty.filterProperty(propertyName, targetObject, sourceObject, sourceObject[propertyName], targetObject[propertyName])) {
-					targetObject[propertyName] = sourceObject[propertyName];
-				}
-			}
+			//in a microsoft instance NOT the true global
+			global = this.self
 		}
 	}
-};
+	/**
+	* Core extend function
+	**
+		@param targetObject[Object]
+		@param sourceObject[Object]
+		@param filter (optional)
+	**/
+	global.extend = function extend(targetObject, sourceObject, filter) {
+		var RequireRequest = this.RequireRequest,
+			propertyName,
+			filterProperty;
+		if (
+			targetObject instanceof RequireRequest ||
+			sourceObject instanceof RequireRequest ||
+			filter instanceof RequireRequest
+		) {
+			//We are in async land now baby
+			this.buildRequireRequest(targetObject, sourceObject, filter);
+		} else {
+			if (filter === undefined) {
+				//default filter type is used if argument not passed
+				filter = true;
+			} else {//check to see if filter argument has been passed if not set to true
+				if (filter === null) {
+					//null set so direct copy without filter immediately
+					return extendAllProperties(targetObject, sourceObject);
+					//our work is done here
+					return;
+				}
+			}
+			//check if we've been passed a PropertyFilter compliant object and if not create a new one
+			//
+			if (!(filter.filterProperty instanceof Function)) {
+				filterProperty = new arguments.callee.PropertyFilter(filter);
+			}
+			//enumerate, filter and assign
+			//Arrays should only be passed the length if we have specified null or false as a filter
+			if (
+				targetObject instanceof Array &&
+				filter === false
+			) {
+				for (propertyName in sourceObject) {
+					if (
+						propertyName !== "length" &&
+						filterProperty.filterProperty(propertyName, targetObject, sourceObject, sourceObject[propertyName], targetObject[propertyName])
+					) {
+						targetObject[propertyName] = sourceObject[propertyName];	
+					}
+				}
+			} else {
+				for (propertyName in sourceObject) {
+					if (filterProperty.filterProperty(propertyName, targetObject, sourceObject, sourceObject[propertyName], targetObject[propertyName])) {
+						targetObject[propertyName] = sourceObject[propertyName];
+					}
+				}
+			}
+		}
+	};
+	/**
+	* Direct copy of ALL properties regardless
+	**
+	**/
+	function extendAllProperties(targetObject, sourceObject) {
+		for (propertyName in sourceObject) {
+			targetObject[propertyName] = sourceObject[propertyName];
+		}
+	}
+	
+})();
+
+
 //extending the extend function itself
 this.self.extend(
 	this.self.extend, 
@@ -96,7 +113,7 @@ this.self.extend(
 		**
 			@property
 		**/
-		global: this.self,
+		global: global,
 		/**
 		* Factory method for creating a required object reference
 		* i.e. the object desired as a source, target, or even filter is being asynchronously loaded using requireJS
