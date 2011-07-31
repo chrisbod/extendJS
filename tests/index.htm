@@ -7,6 +7,46 @@
 	function isFunction(object,error) {
 		equals(typeof object, "function", error + " is not a function");
 	}
+	function getPropertyNamesAsArray(object,condition) {
+		condition = condition || function (object,condition) {
+			return true
+		};
+		var propertiees = [],
+			i;
+		for (i in object) {
+			if (condition(object,i)) {
+				properties.push(i)
+			}
+			
+		}
+	}
+	function comparePropertyNamesArray(properties1, properties2) {
+		if (properties1.length != properties2.length) {
+			return false;
+		}
+		for (var i = 0; i!= properties1.length; i++) {
+			if (properties1[i] !== properties2[i]) {
+				return false
+			}
+		}
+		return true;
+	}
+	function instancePropertiesOnly(object,property) {
+		return object.hasOwnProperty(property);
+	}
+	function inheritedPropertiesOnly(object,property) {
+		return !object.hasOwnProperty(property);
+	}
+	function allObjectPropertiesAreIdentical(object1,object2) {
+		var properties1 = getPropertyNamesAsArray(object1);
+			properties2 = getPropertyNamesAsArray(object2);
+		return comparePropertyNamesArray(properties1, properties2);
+	}
+	function allInheritedPropertiesAreIdentical(object1, object2) {
+		var properties1 = getPropertyNamesAsArray(object1, inheritedPropertiesOnly);
+			properties2 = getPropertyNamesAsArray(object2, inheritedPropertiesOnly);
+		return comparePropertyNamesArray(properties1, properties2);
+	}
 	function validateInterface(object, objectName, validator) {
 		if (validator.constructor.prototype === Object.prototype) {//passed a literal so do a custom check
 			for (var i in validator) {
@@ -52,11 +92,7 @@
 		}
 	}
 	function  someFunction1() {}
-	var object1 = {
-		method1: someFunction1,
-		property1: 12,
-		undefinedProperty: undefined
-	}
+
 	
 	onload = function () {
 		test("Extend load and initialisation", function() {
@@ -86,9 +122,19 @@
 				filter: undefined
 			});
 		});
-		var object2 = {}
-		extend(object2,object1);
-		debugger;
+
+		test("basic clone of literal", function () {
+			var object1 = {
+				1:1,
+				a: {},
+				b: function(){}
+			}
+			var object2 = {}
+			extend(object2,object1);
+			
+		
+		
+		}
 		
 	}
 	</script>
