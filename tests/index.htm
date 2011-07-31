@@ -7,51 +7,33 @@
 	function isFunction(object,error) {
 		equals(typeof object, "function", error + " is not a function");
 	}
-	function InterfaceCheck(object, objectName, methods, properties, instancesOf, specificPropertyValues) {
-		this.object = object;
-		this.objectName = objectName;
-		this.methodsToCheck = methods;
-		this.propertiesToCheckExist = properties;
-		this.propertiesAreInstancesOf = instancesOf;
-		this.specificPropertyValues = specificPropertyValues;
-		this.check();
-	}
-	InterfaceCheck.prototype.check = function () {
-		this.methodsToCheck &&  this.checkMethods();
-		this.propertiesToCheckExist && this.checkProperties();
-		this.propertiesAreInstancesOf && this.checkInstancesOf();
-		this.specificPropertyValues = this.checkSpecificPropertyValues();
-	}
-	InterfaceCheck.prototype.checkMethods = function () {
-		for (var i = 0, methods = this.methodsToCheck, l = methods.length; i!=l;  i++) {
-			isFunction(this.object[methods[i]],this.objectName+"."+methods[i])
-		}	
-	}
-	InterfaceCheck.prototype.checkProperties = function () {
-		for (var i = 0, properties = this.propertiesToCheckExist, l = properties.length; i!=l; i++) {
-			ok(properties[i] in this.object,this.objectName+"."+properties[i]+" is not present")
-		}
-	}
-	InterfaceCheck.prototype.checkInstancesOf = function () {
-		for (var i in this.propertiesAreInstancesOf) {
-			ok(this.object[i] instanceof this.propertiesAreInstancesOf[i], this.objectName+"."+i+" is not an instance of "+this.propertiesAreInstancesOf[i]);
-		}
-	}
-	InterfaceCheck.prototype.checkSpecificPropertyValues = function () {
-		for (var i in this.specificPropertyValues) {
-			equals(this.object[i],this.specificProperties[i], this.objectName+"."+i+" is not equal to "+this.specificProperties[i])
-		}
-	}
 	function validateInterface(object, objectName, validator) {
 		if (validator.constructor.prototype === Object.prototype) {//passed a literal so do a custom check
 			for (var i in validator) {
 				var member = validator[i];
-				if (member === validator[i]) {
-					ok (true);
+				if (member === object[i]) {
+				ok(true)
+					continue;
+				
 				}
 				else if (typeof member === "function") {
-					ok(object[i] instanceof member, objectName+"."+i+" is not an instance of type "+member.match(/^\s*function\s*([^\{]+)\s*\{/)[1]||"unknown")
-				} else if (member === undefined) {
+					if (member === Boolean) {
+						ok(object[i].constructor === member,  objectName+"."+i+" is not a Boolean")
+						continue;
+					}
+					if (member === Object) {
+						ok(typeof object[i] === "object" && object[i].constructor !== Array, objectName+"."+i+" is not an object");
+						continue;
+					} else {
+						if (object[i] instanceof member  || typeof object[i] === "function") {
+						ok(true)
+						continue;
+						}
+						ok(false , objectName+"."+i+" is not an instance of type "+member.toString().match(/^\s*function\s*([^\(]+)\s*\(/)[1]||"unknown");
+						continue;
+					}
+				}
+				if (member === undefined) {
 					ok(i in object, objectName+"."+i+" property is not present at all");
 				}
 				else {//loose equality check
@@ -76,36 +58,29 @@
 		  equals(typeof extend, "function", "extend does not exist in global scope. extend");
 		  equals(extend.global, window, "extend global property is equals to window object")
 		 });
-		 test("extend core implementation interface all present and correct", function () {
-			new InterfaceCheck(
-				extend,
-				"extend",
-				[
-					"PropertyFilter",
-					"require",
-					"RequireRequest",
-					"buildRequireRequest",
-				],
-				[
-					"INSTANCE_ONLY",
-					"INCLUDE_INHERITED",
-					"ALL",
-					"METHODS_ONLY",
-					"EXCLUDE_ALL_OBJECTS"
-				]
-			
+		test("extend interface", function () {
+			validateInterface(extend,"extend", {
+					"PropertyFilter": Function,
+					"require": Function,
+					"RequireRequest": Function,
+					"buildRequireRequest": Function,
+					INSTANCE_ONLY: undefined, //these are 'constants' and technically could be anything
+					INCLUDE_INHERITED: undefined,
+					ALL: undefined,
+					METHODS_ONLY: undefined,
+					EXCLUDE_ALL_OBJECTS: undefined
+					
+			}
 			);
-		 
-		 });
-		 test("extend PropertyFilter core implementation/interface all present and correct)", function () {
-		  new InterfaceCheck(
-			extend.PropertyFilter.prototype,
-			"extend.propertyFilter",
-			["filterProperty"],
-			["filter"]
-			)
-		}
-		)
+		
+		});
+		test("extend.PropertyFilter interface", function () {
+			validateInterface(extend.PropertyFilter.prototype, "extend.PropertyFilter.prototype", {
+				filterProperty: Function,
+				filter: undefined
+			});
+		});
+		
 	}
 	</script>
 	</head>
