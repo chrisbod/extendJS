@@ -14,7 +14,7 @@
 		this !== this.self //in a microsoft browser
 		) {
 			//in a microsoft instance NOT the true global
-		global = this.;		}
+		global = this.self;
 	}
 	/**
 	* Core extend function
@@ -24,8 +24,7 @@
 		@param filter (optional)
 	**/
 	function extend(targetObject, sourceObject, filter) {
-		var RequireRequest = extend.RequireRequest,
-			filterProperty;
+		var filterProperty;
 		if (requireRequestPassed(targetObject, sourceObject, filter)){//We are in async land now baby (this 'factory' method is 'public')
 			return this.buildRequireRequest(targetObject, sourceObject, filter);//build a require request 'chain' and exit
 		}
@@ -44,10 +43,13 @@
 		}
 			return extendUsingFilterProperty(targetObject, sourceObject, filterProperty);//enumerate, filter and assign
 		}
-	};
-	extend.global = this.
+	extend.global = global;
 	//'Fluent'ly! named and extracted logic functions (you know, to make the code fluent and self documenting :-))
 	function requireRequestPassed(targetObject, sourceObject, filter) {
+		var RequireRequest = extend.RequireRequest;
+		if (!RequireRequest) {//extend has not currently been extended!
+			return false;
+		}
 		return targetObject instanceof RequireRequest || sourceObject instanceof RequireRequest || filter instanceof RequireRequest
 	}
 	function needToFilterLengthFromArray(targetObject, filter) {
@@ -93,13 +95,15 @@
 			}
 		}
 	}
+	global.extend = extend;
 	return extend;
+	
 })();
 
 
 //extending the extend function itself
-this.self.extend(
-	this.self.extend, 
+extend(
+	extend, 
 	{
 		/**
 		* Utility type used to create property filters (rules for whether to copy a particular property)
@@ -129,7 +133,7 @@ this.self.extend(
 		require: function (moduleName, targetObjectGetter) {
 			return new this.RequireRequest(moduleName,targetObjectGetter);
 		},
-		RequireRequest: function (moduleName, targetObjectGetter) {
+		RequireRequest: function extend_RequireRequest(moduleName, targetObjectGetter) {
 			this.moduleName = moduleName;
 			this.targetObjectGetter = targetObjectGetter; //need to handler defaults for this
 		},
@@ -191,19 +195,19 @@ this.self.extend(
 		METHODS_ONLY: function extend_METHODS_ONLY(propertyName, targetObject, sourceObject, sourceValue) {
 			return sourceValue instanceof Function;
 		},
-		EXCLUDE_ALL_OBJECTS: function extend_EXCLUDE_OBJECTS(propertyName, targetObject, sourceObject, sourceValue) {
+		EXCLUDE_ALL_OBJECTS: function extend_EXCLUDE_ALL_OBJECTS(propertyName, targetObject, sourceObject, sourceValue) {
 			return !(
 				typeof sourceValue === "object" ||
-				typeof sourceValue === "unknown")
+				typeof sourceValue === "unknown"
 				);
 		}
 	},
 	//direct copy
 	null
 );
-this.self.extend(
+extend(
 	//extend the prototype of PropertyFilter type
-	this.extend.PropertyFilter.prototype, 
+	extend.PropertyFilter.prototype, 
 	{
 	
 	//Core implementation for PropertyInterface Implementation//	
@@ -247,7 +251,7 @@ this.self.extend(
 			return (
 				!Object.prototype.hasOwnProperty.call(targetObject, propertyName) ||
 				targetValue === null ||
-				targetValue === undefined;
+				targetValue === undefined
 			);
 		},
 		
@@ -280,7 +284,3 @@ this.self.extend(
 	},
 	null
 );
-//clean up
-if (this.self === this) {
-	delete this.self;
-} 
