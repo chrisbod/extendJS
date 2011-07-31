@@ -47,6 +47,11 @@
 			properties2 = getPropertyNamesAsArray(object2, inheritedPropertiesOnly);
 		return comparePropertyNamesArray(properties1, properties2);
 	}
+	function allInstancePropertiesAreIdentical(object1, object2) {
+		var properties1 = getPropertyNamesAsArray(object1, instancePropertiesOnly);
+			properties2 = getPropertyNamesAsArray(object2, instancePropertiesOnly);
+		return comparePropertyNamesArray(properties1, properties2);
+	}
 	function validateInterface(object, objectName, validator) {
 		if (validator.constructor.prototype === Object.prototype) {//passed a literal so do a custom check
 			for (var i in validator) {
