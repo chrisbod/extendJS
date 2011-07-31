@@ -45,6 +45,8 @@ augment.Augmenter = function augment_Augmenter(sourceObject,propertyName,constru
 };
 augment.Augmenter.prototype = {
 	augmentMethod: function augment_Augmenter_augmentMethod(sourceObject, methodName) {
+	
+	//need to look for capitalized methods (constructors)
 		var augmentedMethod = this.augmentedProperties[methodName];
 		if (!augmentedMethod) {
 			//not using a closure - we want an unadultered method;
@@ -60,6 +62,7 @@ augment.Augmenter.prototype = {
 		return augmentedMethod;
 	},
 	augmentProperty : function (sourceObject, propertyName) {
+		//need to look for capitalized properties (constants)
 		this.augmentedProperties[propertyName] = sourceObject[propertyName];
 	}
 };
