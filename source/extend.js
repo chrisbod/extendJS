@@ -55,7 +55,7 @@
 	function needToFilterLengthFromArray(targetObject, filter) {
 		return targetObject instanceof Array && filter === false
 	}
-	function objectTypeIsFilterProperty(object) {
+	function objectTypeIsFilterProperty(filter) {
 		return !(filter.filterProperty instanceof Function)
 	}
 	/**
@@ -240,7 +240,7 @@ extend(
 				propertyValue = targetObject[propertyName];
 			return (
 				hasOwnProperty.call(sourceObject,propertyName) &&
-				!hasOwnProperty.call(targetProperty,propertyName) ||
+				!hasOwnProperty.call(targetObject,propertyName) ||
 				propertyValue === null ||
 				propertyValue === undefined
 			);

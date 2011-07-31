@@ -51,7 +51,13 @@
 		
 		}
 	}
-
+	function  someFunction1() {}
+	var object1 = {
+		method1: someFunction1,
+		property1: 12,
+		undefinedProperty: undefined
+	}
+	
 	onload = function () {
 		test("Extend load and initialisation", function() {
 		  var extend = window.extend;
@@ -60,10 +66,10 @@
 		 });
 		test("extend interface", function () {
 			validateInterface(extend,"extend", {
-					"PropertyFilter": Function,
-					"require": Function,
-					"RequireRequest": Function,
-					"buildRequireRequest": Function,
+					PropertyFilter: Function,
+					require: Function,
+					RequireRequest: Function,
+					buildRequireRequest: Function,
 					INSTANCE_ONLY: undefined, //these are 'constants' and technically could be anything
 					INCLUDE_INHERITED: undefined,
 					ALL: undefined,
@@ -80,6 +86,9 @@
 				filter: undefined
 			});
 		});
+		var object2 = {}
+		extend(object2,object1);
+		debugger;
 		
 	}
 	</script>
