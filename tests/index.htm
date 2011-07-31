@@ -63,7 +63,7 @@
 			for (var i in validator) {
 				ok(i in object);
 				if (typeof validator[i] === "function") {
-					ok(typeof object[i] === "function", objectName+"."+i" is not a method");
+					ok(typeof object[i] === "function", objectName+"."+i+" is not a method");
 				}
 			}
 		
