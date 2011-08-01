@@ -1,8 +1,8 @@
-function augment(targetObject, sourceObject, filter, initMethod) {
+function augment(targetObject, sourceObject, filter, initMethodOrConstructor, nameOrDirect ) {//propertyNameForInstance will need implementing
 	var callee = arguments.callee,
 		augmentor ;//= instancePropertyName ? callee.getAugmenterBySourceAndPropertyName(sourceObject, instancePropertyName) : null;
 	if (!augmentor) {
-		augmentor = callee.createAugmentor(sourceObject,filter,initMethod);
+		augmentor = callee.createAugmentor(sourceObject,filter,initMethodOrConstructor,nameOrDirect);
 	}
 	if (!targetObject.augmentations) {
 		targetObject.augmentations = [augmentor];
@@ -22,14 +22,12 @@ function augment(targetObject, sourceObject, filter, initMethod) {
 }
 augment.instance_augment = function augment_object_augment() {
 	for (var i = 0, augmentations = this.augmentations, l = augmentations.length; i != l; i++) {
-		if (augmentations[i].initMethod) {
-			augmentation[i].initMethod.apply(this)
-		}	
+		augmentations[i].applyToInstance(this);
 	}
 }
-augment.createAugmentor = function augment_createAugmentor (sourceObject, initMethod) {
+augment.createAugmentor = function augment_createAugmentor (sourceObject, initMethod, nameOrDirect) {
 	var id = null;//neeed to generate an id preferable meaningful (contructor name) - otherwise autgenerated
-	var augmentor = new this.Augmentor(id, sourceObject, initMethod);
+	var augmentor = new this.Augmentor(id, sourceObject, initMethod,nameOrDirect);
 	augmentor.build();
 	return augmentor;
 };
@@ -46,6 +44,15 @@ augment.Augmentor.prototype = {
 			augmentor.propertyMap[i] = this.augmentValue(propertyName, sourceObject, sourceObject[i]);
 		}
 	},
+	applyToInstance: function (instance) {
+		if (this.sourceObject instanceof this.initMethod) {//passed a constructor
+			instance.augmentations[this.id] = new this.initMethod(instance);
+		}
+		else {
+			//apply the method to the instance
+			this.initMethod.apply(instance);
+		}
+	}
 	augmentValue: function augment_Augmentor_augmentValue(propertyName, sourceObject, value) {
 		if (typeof method === "function") {
 			return this.augmentMethod(propertyName, sourceObject, value);
@@ -54,14 +61,15 @@ augment.Augmentor.prototype = {
 	}
 	augmentMethod: function augment_Augmentor_augmentMethod(sourceObject, methodName) {
 		//need to look for capitalized methods (constructors||function constants)
-		return new Function("return this.augmentations."+this.id+"." + methodName + ".apply(this.augmentations."+this.id+", arguments)")
+		return new Function("return this.augmentations."+this.id+"." + methodName + ".apply(this.augmentations."+this.id+", arguments)");
+		//
 	}
 };
 augment.counter = 0;
 augment.builtAugments = [];
-//Augmentation 'interface'
+//Dummy Augmentation 'interface'
 augment.Augmentation = function augment_Augmentation(augmentee) {
-	this.augmentee = augmentee || this;
+	this.augmentee = augmentee;
 }
 augment.Augmentation.prototype = {
 	augmentee: void augment.Augmentation||Object,
