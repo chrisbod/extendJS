@@ -41,8 +41,8 @@
 		if (objectTypeIsFilterProperty(filter)) {//check if we've been passed a PropertyFilter compliant object and if not create a new one based on the filter property
 			filterProperty = new extend.PropertyFilter(filter);
 		}
-			return extendUsingFilterProperty(targetObject, sourceObject, filterProperty);//enumerate, filter and assign
-		}
+		return extendUsingFilterProperty(targetObject, sourceObject, filterProperty);//enumerate, filter and assign
+	}
 	extend.global = global;
 	//'Fluent'ly! named and extracted logic functions (you know, to make the code fluent and self documenting :-))
 	function requireRequestPassed(targetObject, sourceObject, filter) {
@@ -79,8 +79,8 @@
 					propertyName,
 					targetObject,
 					sourceObject,
-					sourceObject[propertyName],
-					targetObject[propertyName]
+					targetObject[propertyName],
+					sourceObject[propertyName]
 				)
 			) {
 				targetObject[propertyName] = sourceObject[propertyName];	
@@ -90,7 +90,7 @@
 	
 	function extendUsingFilterProperty(targetObject, sourceObject, filterProperty) {
 		for (propertyName in sourceObject) {
-			if (filterProperty.filterProperty(propertyName, targetObject, sourceObject, sourceObject[propertyName], targetObject[propertyName])) {
+			if (filterProperty.filterProperty(propertyName, targetObject, sourceObject, targetObject[propertyName], sourceObject[propertyName])) {
 				targetObject[propertyName] = sourceObject[propertyName];
 			}
 		}
@@ -192,10 +192,10 @@ extend(
 		INSTANCE_ONLY: true,
 		INCLUDE_INHERITED: false,
 		ALL: null,
-		METHODS_ONLY: function extend_METHODS_ONLY(propertyName, targetObject, sourceObject, sourceValue) {
+		METHODS_ONLY: function extend_METHODS_ONLY(propertyName, targetObject, sourceObject, targetValue, sourceValue) {
 			return sourceValue instanceof Function;
 		},
-		EXCLUDE_ALL_OBJECTS: function extend_EXCLUDE_ALL_OBJECTS(propertyName, targetObject, sourceObject, sourceValue) {
+		EXCLUDE_ALL_OBJECTS: function extend_EXCLUDE_ALL_OBJECTS(propertyName, targetObject, sourceObject, targetValue, sourceValue) {
 			return !(
 				typeof sourceValue === "object" ||
 				typeof sourceValue === "unknown"
@@ -234,19 +234,19 @@ extend(
 			}
 		},
 
-		filterPropertyInstanceOnlyAllowingNewNullOrUndefined: function extend_PropertyFilter_filterPropertyInstanceOnlyAllowingNewNullOrUndefined(propertyName, targetObject, sourceObject) {
-			//accept only instance properties but disallow overwriting any existing properties unless they are null or undefined
-			var hasOwnProperty = Object.prototype.hasOwnProperty,
-				propertyValue = targetObject[propertyName];
-			return (
-				hasOwnProperty.call(sourceObject,propertyName) &&
-				!hasOwnProperty.call(targetObject,propertyName) ||
-				propertyValue === null ||
-				propertyValue === undefined
-			);
+		filterPropertyInstanceOnlyAllowingNewNullOrUndefined: function extend_PropertyFilter_filterPropertyInstanceOnlyAllowingNewNullOrUndefined(propertyName, targetObject, sourceObject, targetValue, sourceValue) {
+			//accept only instance properties/ not overwriting instance properties unless they are null or undefined
+			var hasOwnProperty = Object.prototype.hasOwnProperty;
+			if (!hasOwnProperty.call(sourceObject, propertyName)) {
+				return false;
+			}
+			if (hasOwnProperty.call(targetObject, propertyName)) {
+				return targetValue === null || targetValue === undefined;
+			}
+			return true
 		},
 
-		filterPropertyInstanceAndInheritedAllowingNewNullOrUndefined: function extend_PropertyFilter_filterPropertyInstanceAndInheritedAllowingNewNullOrUndefined(propertyName, targetObject, sourceObject, sourceValue, targetValue) {
+		filterPropertyInstanceAndInheritedAllowingNewNullOrUndefined: function extend_PropertyFilter_filterPropertyInstanceAndInheritedAllowingNewNullOrUndefined(propertyName, targetObject, sourceObject, targetValue, sourceValue) {
 			//accept all properties (including inherited ones) but disallow overwriting any existing properties unless they are null or undefined
 			return (
 				!Object.prototype.hasOwnProperty.call(targetObject, propertyName) ||
