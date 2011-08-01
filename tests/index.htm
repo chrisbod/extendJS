@@ -11,7 +11,7 @@
 		condition = condition || function (object,condition) {
 			return true
 		};
-		var propertiees = [],
+		var properties = [],
 			i;
 		for (i in object) {
 			if (condition(object,i)) {
@@ -19,9 +19,11 @@
 			}
 			
 		}
+		return properties;
 	}
 	function comparePropertyNamesArray(properties1, properties2) {
 		if (properties1.length != properties2.length) {
+			
 			return false;
 		}
 		for (var i = 0; i!= properties1.length; i++) {
@@ -128,7 +130,7 @@
 			});
 		});
 
-		test("basic clone of literal", function () {
+		test("basic extend - (literal source to literal target)", function () {
 			var object1 = {
 				1:1,
 				a: {},
@@ -136,11 +138,19 @@
 			}
 			var object2 = {}
 			extend(object2,object1);
-			
+			ok(allObjectPropertiesAreIdentical(object2,object1),"Cloned object literal is not identical to source object")	
 		
-		
-		}
-		
+		});
+		test("basic extend - (typed source to literal)", function () {
+			function TypedSource(){}
+			TypedSource.prototype.typeProperty = "typeProperty"
+			var typedSource = new TypedSource();
+			typedSource.instanceProperty = "instanceProperty"
+			var literalTarget = {}
+			extend(literalTarget,typedSource);
+			ok(!literalTarget.typeProperty,"literal has inherited a type property")
+			ok(literalTarget.instanceProperty,"literal has not inherited an instance property")
+		});
 	}
 	</script>
 	</head>
