@@ -46,6 +46,9 @@
 		if (objectTypeIsFilterProperty(filter)) {//check if we've been passed a PropertyFilter compliant object and if not create a new one based on the filter property
 			filterProperty = new extend.PropertyFilter(filter);
 		}
+		else {
+			filterProperty = filter;
+		}
 		return extendUsingFilterProperty(targetObject, sourceObject, filterProperty);//enumerate, filter and assign
 	}
 	extend.global = global;
@@ -295,7 +298,7 @@ extend(
 		
 		filterPropertyUsingString: function extend_PropertyFilter_filterPropertyUsingString(propertyName) {
 			//simple identity check
-			return propertyName === this.filter;
+			return propertyName.toString() === this.filter;
 		},
 		
 		filterPropertyUsingNumber: function extend_PropertyFilter_filterPropertyUsingNumber(propertyName) {
@@ -305,7 +308,11 @@ extend(
 
 		filterPropertyUsingFunction: function extend_PropertyFilter_filterPropertyUsingFunction() {
 			//passes all three arguments straight through to the filterMethod
-			return this.filter.apply(null, arguments);
+			var keepProperty = this.filter.apply(null, arguments);
+			if (typeof keepProperty !== "boolean") {
+				throw "Invalid return property ("+keepProperty+") returned from filter method (extendjs)"
+			}
+			return keepProperty;
 		},
 		
 		filterPropertyUsingRegExp: function extend_PropertyFilter_filterPropertyUsingRegExp(propertyName) {
@@ -317,7 +324,7 @@ extend(
 		},
 		
 		filterPropertyUsingObject: function extend_PropertyFilter_filterPropertyUsingObject(propertyName) {
-			return this.filter[propertyName] !== undefined;
+			return !!this.filter[propertyName];
 		}
 	},
 	null

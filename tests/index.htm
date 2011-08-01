@@ -21,6 +21,12 @@
 		}
 		return properties;
 	}
+	function objectHasNoProperties(object) {
+		for (var i in object) {
+			return false
+		}
+		return true;
+	}
 	function comparePropertyNamesArray(properties1, properties2) {
 		if (properties1.length != properties2.length) {
 			
@@ -98,15 +104,14 @@
 		
 		}
 	}
-	function  someFunction1() {}
-			function TypedSource(){}
-			TypedSource.prototype.typeProperty = "typeProperty"
-			TypedSource.prototype.anotherTypeProperty = "anotherTypeProperty"
-			TypedSource.prototype.undefinedTypeProperty = undefined;
-			var typedSource = new TypedSource();
-			typedSource.instanceProperty = "instanceProperty"
-			typedSource.anotherInstanceProperty = "anotherInstanceProperty"
-			typedSource.undefinedInstanceProperty = undefined;
+function TypedSource(){}
+TypedSource.prototype.typeProperty = "typeProperty"
+TypedSource.prototype.anotherTypeProperty = "anotherTypeProperty"
+TypedSource.prototype.undefinedTypeProperty = undefined;
+var typedSource = new TypedSource();
+typedSource.instanceProperty = "instanceProperty"
+typedSource.anotherInstanceProperty = "anotherInstanceProperty"
+typedSource.undefinedInstanceProperty = undefined;
 			
 			
 	
@@ -191,18 +196,150 @@
 			targetArray[10] = 10;
 			extend(targetArray,sourceArray);
 			equals(targetArray[10], 10, "Slot after source array's length in target array has been lost")
-			targetArray = []
+			targetArray = [7,8]
 			targetArray[10] = 10
 			extend(targetArray,sourceArray, null);
-			alert(targetArray)
-			/*targetArray.length = 0;
-			targetArray[10] = 10;
-			extend(targetArray,sourceArray,null);
-			equals(targetArray.length, sourceArray.length, "target Array's length has not been modified in an unfiltered extend")*/
+			equals(targetArray[0],sourceArray[0], "target array's properties not being correctly overwritten")
+			equals(targetArray.length, sourceArray.length, "target Array's length has not been modified in an unfiltered extend");
 		
 		
 		});
-	}
+		var src = {
+				0.1: "0.1",
+				1: "1",
+				"property0": "property0",
+				"property1": "property1",
+				"property2": "property2"
+			}
+		var target
+		test("Numeric filter", function () {
+			target = {}
+			extend(target,src,1);
+			equals(target[1],"1","numeric property not copied");
+			ok(!("property1" in target),"undesired property copied");
+						target = {}
+			extend(target,src,0.1);
+			equals(target[0.1],"0.1","floating point property not copied");
+			ok(!("property1" in target),"undesired property copied");
+		
+		});
+		test("String Filter", function () {
+			target = {}
+			extend(target,src,"property1");
+			equals(target.property1,src.property1, "property passed as string not copied");
+			target = {}
+			extend(target,src,"1");
+			equals(target[1],"1","numeric property expressed as string not copied");
+			ok(!("property1" in target),"undesired property copied");
+			target = {}
+			extend(target,src,"0.1");
+			equals(target[0.1],"0.1","floating point property expressed as string not copied");
+			ok(!("property1" in target),"undesired property copied");
+			
+		});
+		test("Array filter - normal", function (){
+			target = {}
+			extend(target,src,[1,"property2"]);
+			equals(target[1],"1","property '1' in array filter not copied");
+			equals(target.property2,"property2","property2 in array filter not copied");
+			ok(!("property1" in target),"undesired property copied");
+		});
+		test("RegExp filter", function () {
+			target = {}
+			extend(target,src,/1/);
+			equals(target.property1,"property1","property1 in regexp filter not copied");
+			equals(target[1],"1","property '1' in regexp filter not copied");
+			equals(target[0.1],"0.1","property '0.1' in regexp filter not copied");
+			ok(!("property2" in target),"undesired property copied");
+			target = {}
+			extend(target, src, /nomatchtothisbaby/);
+			ok (objectHasNoProperties(target),"regular expression with no matches has copied a property")
+		});
+		test("Explicitly passing true as a filter", function () {
+		var targetExplicit = {};
+			target = {}
+			extend(targetExplicit,src,true);
+			extend(target,src);
+			ok(allObjectPropertiesAreIdentical(targetExplicit,target),"omitting filter does not display same behaviour as specifying it")
+		
+		
+		});
+		test("Setting filter to false against an instance property", function () {
+		target = {};
+			var typed = new TypedSource();
+			extend(target,typed,false);
+			ok(allObjectPropertiesAreIdentical(TypedSource.prototype,target),"setting filter to false failed to result in inherited properties being copied correctly to target ")
+			target = {
+				typeProperty: "custom property"
+			}
+			extend(target,typed,false);
+			ok(target.typeProperty!==typed.typeProperty,"setting filter to false has resulted in existing target property being overridden");
+		
+		});
+		test("Function filter (basic)", function () {
+			target = {}
+			var typed = new TypedSource();
+			typed.filterMe = "filterMe";
+			var typed2 = new TypedSource();
+			var filter = function (propertyName) {
+				if (propertyName === "filterMe") {
+					return false;
+				}
+				return true;
+			}
+			extend(typed2, typed, filter);
+			ok(!typed2.filterMe,"filter function failed to filter property");
+		
+		});
+		test("Function filter - invalid function filter throws exception", function () {
+			target = {}
+			var typed = new TypedSource();
+			typed.filterMe = "filterMe";
+			var typed2 = new TypedSource();
+			var filter = function (propertyName) {
+				if (propertyName === "filterMe") {
+					return false;
+				}
+			}
+			try {
+				extend(typed2, typed, filter);
+				ok(false,"exception not thrown for invalid filter function");
+			}
+			catch (e) {
+				ok(true)
+			};
+		
+		});
+		test("Object filter", function () {
+			var filter = {
+				property0: true,
+				property1: false
+			}
+			target = {}
+			extend(target,src,filter);
+			ok(!target.property1,"property1 set to false but was copied")
+			ok(target.property0,"property0 not copied");
+			ok(!target.property2,"property2 was copied");
+			
+		});
+		test("FilterProperty passed", function () {
+		var filterAll = {filterProperty: function () {return false}}
+		var filterNone = {filterProperty: function (){return true}};
+		var allFiltered = {}
+		var noneFiltered = {}
+		extend(allFiltered,src,filterAll);
+		ok(objectHasNoProperties(allFiltered),"All properties were not filtered");
+		extend(noneFiltered,src,filterNone);
+		ok(allObjectPropertiesAreIdentical(noneFiltered,src),"Not all properties where copied across");
+		
+		});
+		
+		
+			};
+			/*
+			
+			*/
+		
 	</script>
 	</head>
 	<body>
