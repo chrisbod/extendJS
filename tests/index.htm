@@ -1,0 +1,355 @@
+<html>
+	<head>
+	<script src="http://code.jquery.com/qunit/qunit-git.js" type="text/javascript"></script>
+	<link rel="stylesheet" type="text/css" href= "http://code.jquery.com/qunit/qunit-git.css/"></link>
+	<script src="../source/extend.js" typeo="text/javascript"></script>
+	<script type="text/javascript">
+	function isFunction(object,error) {
+		equals(typeof object, "function", error + " is not a function");
+	}
+	function getPropertyNamesAsArray(object,condition) {
+		condition = condition || function (object,condition) {
+			return true
+		};
+		var properties = [],
+			i;
+		for (i in object) {
+			if (condition(object,i)) {
+				properties.push(i)
+			}
+			
+		}
+		return properties;
+	}
+	function objectHasNoProperties(object) {
+		for (var i in object) {
+			return false
+		}
+		return true;
+	}
+	function comparePropertyNamesArray(properties1, properties2) {
+		if (properties1.length != properties2.length) {
+			
+			return false;
+		}
+		for (var i = 0; i!= properties1.length; i++) {
+			if (properties1[i] !== properties2[i]) {
+				return false
+			}
+		}
+		return true;
+	}
+	function instancePropertiesOnly(object,property) {
+		return object.hasOwnProperty(property);
+	}
+	function inheritedPropertiesOnly(object,property) {
+		return !object.hasOwnProperty(property);
+	}
+	function allObjectPropertiesAreIdentical(object1,object2) {
+		var properties1 = getPropertyNamesAsArray(object1);
+			properties2 = getPropertyNamesAsArray(object2);
+		return comparePropertyNamesArray(properties1, properties2);
+	}
+	function allInheritedPropertiesAreIdentical(object1, object2) {
+		var properties1 = getPropertyNamesAsArray(object1, inheritedPropertiesOnly);
+			properties2 = getPropertyNamesAsArray(object2, inheritedPropertiesOnly);
+		return comparePropertyNamesArray(properties1, properties2);
+	}
+	function allInstancePropertiesAreIdentical(object1, object2) {
+		var properties1 = getPropertyNamesAsArray(object1, instancePropertiesOnly);
+			properties2 = getPropertyNamesAsArray(object2, instancePropertiesOnly);
+		return comparePropertyNamesArray(properties1, properties2);
+	}
+	function validateInterface(object, objectName, validator) {
+		if (validator.constructor.prototype === Object.prototype) {//passed a literal so do a custom check
+			for (var i in validator) {
+				var member = validator[i];
+				if (member === object[i]) {
+				ok(true)
+					continue;
+				
+				}
+				else if (typeof member === "function") {
+					if (member === Boolean) {
+						ok(object[i].constructor === member,  objectName+"."+i+" is not a Boolean")
+						continue;
+					}
+					if (member === Object) {
+						ok(typeof object[i] === "object" && object[i].constructor !== Array, objectName+"."+i+" is not an object");
+						continue;
+					} else {
+						if (object[i] instanceof member  || typeof object[i] === "function") {
+						ok(true)
+						continue;
+						}
+						ok(false , objectName+"."+i+" is not an instance of type "+member.toString().match(/^\s*function\s*([^\(]+)\s*\(/)[1]||"unknown");
+						continue;
+					}
+				}
+				if (member === undefined) {
+					ok(i in object, objectName+"."+i+" property is not present at all");
+				}
+				else {//loose equality check
+					ok (member == object[i], objectName+"."+i+" is not "+member);
+				}
+			}
+		}
+		else {
+			for (var i in validator) {
+				ok(i in object);
+				if (typeof validator[i] === "function") {
+					ok(typeof object[i] === "function", objectName+"."+i+" is not a method");
+				}
+			}
+		
+		}
+	}
+function TypedSource(){}
+TypedSource.prototype.typeProperty = "typeProperty"
+TypedSource.prototype.anotherTypeProperty = "anotherTypeProperty"
+TypedSource.prototype.undefinedTypeProperty = undefined;
+var typedSource = new TypedSource();
+typedSource.instanceProperty = "instanceProperty"
+typedSource.anotherInstanceProperty = "anotherInstanceProperty"
+typedSource.undefinedInstanceProperty = undefined;
+			
+			
+	
+	onload = function () {
+		test("Extend load and initialisation", function() {
+		  var extend = window.extend;
+		  equals(typeof extend, "function", "extend does not exist in global scope. extend");
+		  equals(extend.global, window, "extend global property is equals to window object")
+		 });
+		test("extend interface", function () {
+			validateInterface(extend,"extend", {
+					PropertyFilter: Function,
+					require: Function,
+					RequireRequest: Function,
+					buildRequireRequest: Function,
+					INSTANCE_ONLY: undefined, //these are 'constants' and technically could be anything
+					INCLUDE_INHERITED: undefined,
+					ALL: undefined,
+					METHODS_ONLY: undefined,
+					EXCLUDE_ALL_OBJECTS: undefined
+					
+			}
+			);
+		
+		});
+		test("extend.PropertyFilter interface", function () {
+			validateInterface(extend.PropertyFilter.prototype, "extend.PropertyFilter.prototype", {
+				filterProperty: Function,
+				filter: undefined
+			});
+		});
+
+		test("basic extend - (literal source to literal target)", function () {
+			var object1 = {
+				1:1,
+				a: {},
+				b: function(){}
+			}
+			var object2 = {}
+			extend(object2,object1);
+			ok(allObjectPropertiesAreIdentical(object2,object1),"Cloned object literal is not identical to source object")	
+		
+		});
+		test("basic extend - (typed source to literal)", function () {
+
+			var literalTarget = {}
+			extend(literalTarget,typedSource);
+			ok(!literalTarget.typeProperty,"literal has inherited a type property")
+			ok(literalTarget.instanceProperty,"literal has not inherited an instance property")
+		});
+		test("basic extend - target object has instance property)", function () {
+
+			var literalTarget = {
+				instanceProperty: "this should persist"
+			}
+			extend(literalTarget,typedSource);
+			equals(literalTarget.instanceProperty,  "this should persist", "Instance property has been overwritten");
+			var newLiteralTarget = {
+				instanceProperty: undefined
+			}
+			extend(newLiteralTarget,typedSource);
+			equals(newLiteralTarget.instanceProperty,typedSource.instanceProperty,"Undefined instance property has not been overwritten");
+			var newerLiteralTarget = {
+				instanceProperty: null
+			}
+			extend(newerLiteralTarget,typedSource);
+			equals(newerLiteralTarget.instanceProperty,typedSource.instanceProperty,"Null instance property has not been overwritten");
+			var newestLiteralTarget = {
+				instanceProperty: false
+			}
+			extend(newestLiteralTarget,typedSource);
+			equals(newestLiteralTarget.instanceProperty,false,"false instance property has been overwritten");
+		});	
+		test("Array extending", function () {
+			var sourceArray = [0,1,2],
+				targetArray = [];
+			sourceArray[4] = 4;
+			
+			extend(targetArray,sourceArray);
+			ok(allObjectPropertiesAreIdentical(sourceArray,targetArray), "arrays are not identical")
+			targetArray = [];
+			targetArray[10] = 10;
+			extend(targetArray,sourceArray);
+			equals(targetArray[10], 10, "Slot after source array's length in target array has been lost")
+			targetArray = [7,8]
+			targetArray[10] = 10
+			extend(targetArray,sourceArray, null);
+			equals(targetArray[0],sourceArray[0], "target array's properties not being correctly overwritten")
+			equals(targetArray.length, sourceArray.length, "target Array's length has not been modified in an unfiltered extend");
+		
+		
+		});
+		var src = {
+				0.1: "0.1",
+				1: "1",
+				"property0": "property0",
+				"property1": "property1",
+				"property2": "property2"
+			}
+		var target
+		test("Numeric filter", function () {
+			target = {}
+			extend(target,src,1);
+			equals(target[1],"1","numeric property not copied");
+			ok(!("property1" in target),"undesired property copied");
+						target = {}
+			extend(target,src,0.1);
+			equals(target[0.1],"0.1","floating point property not copied");
+			ok(!("property1" in target),"undesired property copied");
+		
+		});
+		test("String Filter", function () {
+			target = {}
+			extend(target,src,"property1");
+			equals(target.property1,src.property1, "property passed as string not copied");
+			target = {}
+			extend(target,src,"1");
+			equals(target[1],"1","numeric property expressed as string not copied");
+			ok(!("property1" in target),"undesired property copied");
+			target = {}
+			extend(target,src,"0.1");
+			equals(target[0.1],"0.1","floating point property expressed as string not copied");
+			ok(!("property1" in target),"undesired property copied");
+			
+		});
+		test("Array filter - normal", function (){
+			target = {}
+			extend(target,src,[1,"property2"]);
+			equals(target[1],"1","property '1' in array filter not copied");
+			equals(target.property2,"property2","property2 in array filter not copied");
+			ok(!("property1" in target),"undesired property copied");
+		});
+		test("RegExp filter", function () {
+			target = {}
+			extend(target,src,/1/);
+			equals(target.property1,"property1","property1 in regexp filter not copied");
+			equals(target[1],"1","property '1' in regexp filter not copied");
+			equals(target[0.1],"0.1","property '0.1' in regexp filter not copied");
+			ok(!("property2" in target),"undesired property copied");
+			target = {}
+			extend(target, src, /nomatchtothisbaby/);
+			ok (objectHasNoProperties(target),"regular expression with no matches has copied a property")
+		});
+		test("Explicitly passing true as a filter", function () {
+		var targetExplicit = {};
+			target = {}
+			extend(targetExplicit,src,true);
+			extend(target,src);
+			ok(allObjectPropertiesAreIdentical(targetExplicit,target),"omitting filter does not display same behaviour as specifying it")
+		
+		
+		});
+		test("Setting filter to false against an instance property", function () {
+		target = {};
+			var typed = new TypedSource();
+			extend(target,typed,false);
+			ok(allObjectPropertiesAreIdentical(TypedSource.prototype,target),"setting filter to false failed to result in inherited properties being copied correctly to target ")
+			target = {
+				typeProperty: "custom property"
+			}
+			extend(target,typed,false);
+			ok(target.typeProperty!==typed.typeProperty,"setting filter to false has resulted in existing target property being overridden");
+		
+		});
+		test("Function filter (basic)", function () {
+			target = {}
+			var typed = new TypedSource();
+			typed.filterMe = "filterMe";
+			var typed2 = new TypedSource();
+			var filter = function (propertyName) {
+				if (propertyName === "filterMe") {
+					return false;
+				}
+				return true;
+			}
+			extend(typed2, typed, filter);
+			ok(!typed2.filterMe,"filter function failed to filter property");
+		
+		});
+		test("Function filter - invalid function filter throws exception", function () {
+			target = {}
+			var typed = new TypedSource();
+			typed.filterMe = "filterMe";
+			var typed2 = new TypedSource();
+			var filter = function (propertyName) {
+				if (propertyName === "filterMe") {
+					return false;
+				}
+			}
+			try {
+				extend(typed2, typed, filter);
+				ok(false,"exception not thrown for invalid filter function");
+			}
+			catch (e) {
+				ok(true)
+			};
+		
+		});
+		test("Object filter", function () {
+			var filter = {
+				property0: true,
+				property1: false
+			}
+			target = {}
+			extend(target,src,filter);
+			ok(!target.property1,"property1 set to false but was copied")
+			ok(target.property0,"property0 not copied");
+			ok(!target.property2,"property2 was copied");
+			
+		});
+		test("FilterProperty passed", function () {
+		var filterAll = {filterProperty: function () {return false}}
+		var filterNone = {filterProperty: function (){return true}};
+		var allFiltered = {}
+		var noneFiltered = {}
+		extend(allFiltered,src,filterAll);
+		ok(objectHasNoProperties(allFiltered),"All properties were not filtered");
+		extend(noneFiltered,src,filterNone);
+		ok(allObjectPropertiesAreIdentical(noneFiltered,src),"Not all properties where copied across");
+		
+		});
+		
+		
+			};
+			/*
+			
+			*/
+		
+	</script>
+	</head>
+	<body>
+	<h1 id="qunit-header">QUnit Test Suite</h1>
+	<h2 id="qunit-banner"></h2>
+	<div id="qunit-testrunner-toolbar"></div>
+	<h2 id="qunit-userAgent"></h2>
+	<ol id="qunit-tests"></ol>
+
+	</body>
+
+</html>
+
