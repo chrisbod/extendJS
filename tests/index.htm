@@ -99,7 +99,16 @@
 		}
 	}
 	function  someFunction1() {}
-
+			function TypedSource(){}
+			TypedSource.prototype.typeProperty = "typeProperty"
+			TypedSource.prototype.anotherTypeProperty = "anotherTypeProperty"
+			TypedSource.prototype.undefinedTypeProperty = undefined;
+			var typedSource = new TypedSource();
+			typedSource.instanceProperty = "instanceProperty"
+			typedSource.anotherInstanceProperty = "anotherInstanceProperty"
+			typedSource.undefinedInstanceProperty = undefined;
+			
+			
 	
 	onload = function () {
 		test("Extend load and initialisation", function() {
@@ -142,14 +151,56 @@
 		
 		});
 		test("basic extend - (typed source to literal)", function () {
-			function TypedSource(){}
-			TypedSource.prototype.typeProperty = "typeProperty"
-			var typedSource = new TypedSource();
-			typedSource.instanceProperty = "instanceProperty"
+
 			var literalTarget = {}
 			extend(literalTarget,typedSource);
 			ok(!literalTarget.typeProperty,"literal has inherited a type property")
 			ok(literalTarget.instanceProperty,"literal has not inherited an instance property")
+		});
+		test("basic extend - target object has instance property)", function () {
+
+			var literalTarget = {
+				instanceProperty: "this should persist"
+			}
+			extend(literalTarget,typedSource);
+			equals(literalTarget.instanceProperty,  "this should persist", "Instance property has been overwritten");
+			var newLiteralTarget = {
+				instanceProperty: undefined
+			}
+			extend(newLiteralTarget,typedSource);
+			equals(newLiteralTarget.instanceProperty,typedSource.instanceProperty,"Undefined instance property has not been overwritten");
+			var newerLiteralTarget = {
+				instanceProperty: null
+			}
+			extend(newerLiteralTarget,typedSource);
+			equals(newerLiteralTarget.instanceProperty,typedSource.instanceProperty,"Null instance property has not been overwritten");
+			var newestLiteralTarget = {
+				instanceProperty: false
+			}
+			extend(newestLiteralTarget,typedSource);
+			equals(newestLiteralTarget.instanceProperty,false,"false instance property has been overwritten");
+		});	
+		test("Array extending", function () {
+			var sourceArray = [0,1,2],
+				targetArray = [];
+			sourceArray[4] = 4;
+			
+			extend(targetArray,sourceArray);
+			ok(allObjectPropertiesAreIdentical(sourceArray,targetArray), "arrays are not identical")
+			targetArray = [];
+			targetArray[10] = 10;
+			extend(targetArray,sourceArray);
+			equals(targetArray[10], 10, "Slot after source array's length in target array has been lost")
+			targetArray = []
+			targetArray[10] = 10
+			extend(targetArray,sourceArray, null);
+			alert(targetArray)
+			/*targetArray.length = 0;
+			targetArray[10] = 10;
+			extend(targetArray,sourceArray,null);
+			equals(targetArray.length, sourceArray.length, "target Array's length has not been modified in an unfiltered extend")*/
+		
+		
 		});
 	}
 	</script>

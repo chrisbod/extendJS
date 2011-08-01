@@ -25,13 +25,18 @@
 	**/
 	function extend(targetObject, sourceObject, filter) {
 		var filterProperty;
-		if (requireRequestPassed(targetObject, sourceObject, filter)){//We are in async land now baby (this 'factory' method is 'public')
-			return this.buildRequireRequest(targetObject, sourceObject, filter);//build a require request 'chain' and exit
+		if (targetObject === null) {//we've been given a null so try to create a new instance of the source - or failing that create an object literal
+			targetObject = extend.getSourceObjectFromNull(targetObject)
+		} else if (requireRequestPassed(targetObject, sourceObject, filter)){//We are in async land now baby (this 'factory' method is 'public')
+			return extend.buildRequireRequest(targetObject, sourceObject, filter);//build a require request 'chain' and exit
 		}
 		if (filter === undefined) {//default filter property is true (i.e. use a 'guarded' copy) is used if filter argument not passed
 			filter = true;//okay I know it's slightly counterintuitive to have an argument that is not passed equivalent to passing true but it's really because I want the 'basic' behaviour to be as safe as possible
 		} else {//check to see if filter argument has been passed if not set to true
 			if (filter === null) {//null set so direct copy without filter immediately
+				if (sourceObject.constructor === Array) {//we've passed null on an array copy so synchronise length property
+					return extendAllPropertiesIncludingLengthIfPresent(targetObject, sourceObject)
+				}
 				return extendAllProperties(targetObject, sourceObject);
 			}
 		}
@@ -65,12 +70,25 @@
 		for (propertyName in sourceObject) {
 			targetObject[propertyName] = sourceObject[propertyName];
 		}
+		return targetObject;
 	};
+	function extendAllPropertiesIncludingLengthIfPresent(targetObject,sourceObject) {
+		for (propertyName in sourceObject) {
+			targetObject[propertyName] = sourceObject[propertyName];
+		}
+		//length (despite being an instance property) is not enumerated
+		if (length in sourceObject) {
+			targetObject.length = sourceObject.length
+		}
+		return targetObject;
+	}
 	
 	/** 
 	* Copy to an array without the length property so the target arrays length is unchanged
 	* function extendArrayWithoutLengthProperty(targetArray, sourceObject) {
 	**/
+	
+	//this may be totally unnecessary it looks like for in doesn't look at length in an array anyway!
 	function extendArrayWithoutCopyingLength(targetArray, sourceObject) {
 		for (propertyName in sourceObject) {
 			if (
@@ -105,6 +123,26 @@
 extend(
 	extend, 
 	{
+		getSourceObjectFromNull: function extend_getSourceObjectFromNull(sourceObject) {
+			var Constructor;
+			if (sourceObject.type && sourceObject instanceof type) {//the object has a specific 'type' property set
+				Constructor = sourceObject.type;
+			} else if (sourceObject.getType && sourceObject instanceof sourceObject.getType()) {
+				Constructor = sourceObject.getType();
+			}
+			//TODO look at common libraries (MSAJAX (uses __type I think) etc) for how they specify object types
+			else {
+				Constructor = sourceObject.constructor;
+			
+			}
+			try {
+				targetObject = new Constructor();//of course the constructor property may not point to the real constructor - 
+			}
+			catch (e) {
+				targetObject = {};
+			}
+			return targetObject;
+		},
 		/**
 		* Utility type used to create property filters (rules for whether to copy a particular property)
 		* PropertyFilters can actually manipulate the target object (i.e if the incoming property 
@@ -236,7 +274,7 @@ extend(
 
 		filterPropertyInstanceOnlyAllowingNewNullOrUndefined: function extend_PropertyFilter_filterPropertyInstanceOnlyAllowingNewNullOrUndefined(propertyName, targetObject, sourceObject, targetValue, sourceValue) {
 			//accept only instance properties/ not overwriting instance properties unless they are null or undefined
-			var hasOwnProperty = Object.prototype.hasOwnProperty;
+			var hasOwnProperty = Object.prototype.hasOwnProperty
 			if (!hasOwnProperty.call(sourceObject, propertyName)) {
 				return false;
 			}
