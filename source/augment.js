@@ -43,6 +43,7 @@ augment.createAugmentor = function augment_createAugmentor (sourceType, augmentI
 	}
 	var augmentor = new this.Augmentor(augmentId, sourceType, applyDirect);
 	augmentor.build();
+	this.addAugmentor(augmentor);
 	return augmentor;
 };
 augment.Augmentor = function augment_Augmentor(id, sourceType, applyDirect) {
@@ -52,8 +53,9 @@ augment.Augmentor = function augment_Augmentor(id, sourceType, applyDirect) {
 	this.propertyMap = {};
 };
 augment.Augmentor.prototype = {
-	resolveType: function (sourceType) {		
-		if (!this.applysourceType.Augmentor) {
+	resolveType: function (sourceType) {	
+		//wrong logic here need to base this on applyDirect
+		if (this.sourceType.Augmentor) {
 			this.sourceType = function augment_Augmentor() {
 				sourceType.Augmentor.apply(this);
 			};
@@ -77,22 +79,23 @@ augment.Augmentor.prototype = {
 	},
 	augmentValue: function augment_Augmentor_augmentValue(propertyName, sourcePrototype, value) {
 		if (typeof method === "function") {
-			return this.augmentMethod(propertyName, sourcePrototype, value);
+			return this.augmentMethod(propertyName, value);
 		}
 		return value;
 	},
-	augmentMethod: function augment_Augmentor_augmentMethod(methodName,sourcePrototype,value) {
-		//need to look for capitalized methods (constructors||function constants)
-		if (!this.applyDirect) {
-			return new Function("return this.augmentations."+this.id+"." + methodName + ".apply(this.augmentations."+this.id+", arguments)");
-		} else {
-			return new Function("return this.augmentations."+this.id+"." + methodName + ".apply(this, arguments)");
+	augmentMethod: function augment_Augmentor_augmentMethod(methodName,value) {
+		if (/^[A-Z]/.test(methodName)) {capitalized methods (assume constructors||function constants)
+			return value;
 		}
-		//
+		return new Function("return this.augmentations."+this.id+"." + methodName + ".apply(this" + (this.applyDirect ? "" : "this.augmentations" + this.id + ", arguments)");
 	}
 };
 augment.counter = 0;
-augment.builtAugments = [];
+augment.builtAugmentors = [];
+augment.addAugmentor = function (augmentor) {
+	
+
+}
 augment.generateAugmentorId = function () {
 	return "unnamedAugmentor"+this.counter++;
 }
